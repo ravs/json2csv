@@ -15,6 +15,7 @@
       }
     </style>
     <link href="css/bootstrap-responsive.css" rel="stylesheet">
+
     <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -27,6 +28,7 @@
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="ico/apple-touch-icon-72-precomposed.png">
     <link rel="apple-touch-icon-precomposed" href="ico/apple-touch-icon-57-precomposed.png">
   </head>
+
   <body>
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
@@ -36,7 +38,7 @@
       </div>
     </div>
     <div class="container">
-	  <a href="https://github.com/ravs/">
+	  <a href="https://github.com/ravs/json2csv">
 		<img style="position: absolute; right: 0px; border: 0px none; top: 40px;" src="images/forkme.png" alt="Fork me on GitHub">
 	  </a>
       <div class="hero-unit">
@@ -44,7 +46,7 @@
       </div>
       <div class="row" style="margin-left: 0;">
         <h2>Insert data in JSON format:</h2>
-		<p><textarea id="json-data" style="height: 225px;width: 1150px;"></textarea></p>
+		<p><textarea id="json-data" style="height: 200px;width: 1150px;"></textarea></p>
 		<p>
 		<a class="btn btn-primary btn-large" id="get-csv">Get CSV</a>
 		<a class="btn btn-primary btn-large" id="download-csv">Save</a>
@@ -54,7 +56,7 @@
 	  <div id="display-csv-div" class="row hidden" style="margin-left: 0;">
 		<hr>
 		<h2>Data in CSV format:</h2>
-		<p><textarea id="csv-result-box" style="height: 225px;width: 1150px;"></textarea></p>
+		<p><textarea id="csv-result-box" readonly="readonly" style="height: 150px;width: 1150px; cursor: text;"></textarea></p>
 	  </div>
       <hr>
       <footer>
@@ -81,48 +83,82 @@
 		$("#get-csv").click(function() {
 			var data = $("#json-data").val();
 			if(data == "" || data == null)
-				alert("Nothing to process. Please enter valid JSON data.");
+				alert(errTemplate+"Nothing to process. Please enter valid JSON data.");
 			else
 				DisplayJSON2CSV(data);
 		});
 		$("#download-csv").click(function() {
 			var data = $("#json-data").val();
 			if(data == "" || data == null)
-				alert("Nothing to process. Please enter valid JSON data.");
+				alert(errTemplate+"Nothing to process. Please enter valid JSON data.");
 			else
 				DownloadJSON2CSV(data);
 		});
 		$("#reset-box").click(function() {
 			ClearJSON();
 		});
-		var isInnerObj = false;
+		var errTemplate = "D'oh!\n\n";
         function ConvertToCSV(objArray) {
-            var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
-            var str = '';
-			for (var i = 0; i < array.length; i++) {
-				var line = '';
-				for (var index in array[i]) {
-					if (line != '') 
-						line += ',';
-					line += array[i][index];
+			try{
+				var array = typeof objArray != 'object' ? JSON.parse(objArray) : objArray;
+				var str = '';
+				for (var i = 0; i < array.length; i++) {
+					var line = '';
+					for (var index in array[i]) {
+						if (line != '') 
+							line += ',';
+						line += array[i][index];
+					}
+					str += line + '\r\n';
 				}
-				str += line + '\r\n';
+				return str;
 			}
-            return str;
+			catch(err){
+            	var errMessage = errTemplate+err.name;
+            	alert(errMessage);
+            	return;
+            }
         };
 		function DownloadJSON2CSV(objArray) {
 			var csvString = ConvertToCSV(objArray);
-			if (navigator.appName != 'Microsoft Internet Explorer') {
-				window.open('data:text/csv;charset=utf-8,' + escape(csvString));
-			} else {
-				var popup = window.open('', 'csv', '');
-				popup.document.body.innerHTML = '<pre>' + string + '</pre>$tag_$tag_';
+			var hasBraces = objArray.charAt(0) =='[' && objArray.charAt(objArray.length-1) == ']';
+			if(csvString == ""){
+				if(hasBraces){
+					alert(errTemplate+"Valid array with no JSON object");
+					return;
+				}
+				else {
+					alert(errTemplate+"Invalid array of JSON objects, missing'[]'");
+					return;
+				}
+			}
+			if(typeof csvString != "undefined" && csvString != ""){
+				if (navigator.appName != 'Microsoft Internet Explorer') {
+					window.open('data:text/csv;charset=utf-8,' + escape(csvString));
+				} 
+				else {
+					var popup = window.open('', 'csv', '');
+					popup.document.body.innerHTML = '<pre>' + string + '</pre>$tag_$tag_';
+				}
 			}
 		};
 		function DisplayJSON2CSV(objArray) {
 			var csvString = ConvertToCSV(objArray);
-			$("#csv-result-box").val(csvString);
-			$("#display-csv-div").removeClass('hidden');
+			var hasBraces = objArray.charAt(0) =='[' && objArray.charAt(objArray.length-1) == ']';
+			if(csvString == ""){
+				if(hasBraces){
+					alert(errTemplate+"Valid array with no JSON object");
+					return;
+				}
+				else {
+					alert(errTemplate+"Invalid array of JSON objects, missing'[]'");
+					return;
+				}
+			}
+			if(typeof csvString != "undefined" && csvString != ""){
+				$("#csv-result-box").val(csvString);
+				$("#display-csv-div").removeClass('hidden');
+			}
 		};
 		function ClearJSON(){
 			$("#json-data").val("");
